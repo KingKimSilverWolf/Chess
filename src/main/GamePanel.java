@@ -15,7 +15,7 @@ public class GamePanel extends JPanel implements Runnable {
         setBackground(Color.black);
     }
 
-    public void lauchGame() {
+    public void launchGame() {
         gameThread = new Thread(this); // Basically calling the run method
         gameThread.start();
     }

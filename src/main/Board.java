@@ -11,7 +11,7 @@ public class Board {
 
     public void draw(Graphics2D g2) {
 
-        int color = 0;
+        int color = 0; //
 
         for (int row = 0; row < MAX_ROW; row++) {
 
