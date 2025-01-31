@@ -19,14 +19,21 @@ public class Board {
 
                 // Squares are drawn in alternating colors
                 if (color == 0) {
-                    g2.setColor(new Color(176, 176, 176)); // Ash Gray
+                    g2.setColor(new Color(240, 217, 181)); // Cream (Maple Wood)
                     color = 1;
                 } else {
-                    g2.setColor(new Color(46, 46, 46)); // Charcoal
+                    g2.setColor(new Color(181, 136, 99)); // Brown (Walnut)
                     color = 0;
                 }
 
                 g2.fillRect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+            }
+
+            // So that the next row is drawn in the opposite color
+            if (color == 0) {
+                color = 1;
+            } else {
+                color = 0;
             }
         }
     }

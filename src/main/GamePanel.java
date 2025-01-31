@@ -10,6 +10,11 @@ public class GamePanel extends JPanel implements Runnable {
     Thread gameThread; // The thread that runs the game (less lag)
     Board board = new Board();
 
+    // Piece Colors
+    public static final int WHITE = 0;
+    public static final int BLACK = 1;
+    int currentColor = WHITE; // In chess white always goes first
+
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.black);
