@@ -46,6 +46,20 @@ public class Piece {
         return row * Board.SQUARE_SIZE;
     }
 
+    public int getCol(int x) {
+        return (x + Board.HALF_SQUARE_SIZE) / Board.SQUARE_SIZE;
+    }
+    public int getRow(int y) {
+        return (y + Board.HALF_SQUARE_SIZE) / Board.SQUARE_SIZE;
+    }
+
+    public void updatePosition() {
+        x = getX(col);
+        y = getY(row);
+        preCol = getCol(x);
+        preRow = getRow(y);
+    }
+
     public void draw(Graphics2D g2) {
         // Calculate the scaling factor to fit the piece within the square
         double scaleFactor = Math.min(

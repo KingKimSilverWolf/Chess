@@ -12,10 +12,12 @@ public class GamePanel extends JPanel implements Runnable {
     final int FPS = 60;
     Thread gameThread; // The thread that runs the game (less lag)
     Board board = new Board();
+    Mouse mouse = new Mouse();
 
     // Pieces
     public static ArrayList<Piece> pieces = new ArrayList<>();
     public static ArrayList<Piece> simPieces = new ArrayList<>();
+    Piece activePiece;
 
     // Piece Colors
     public static final int WHITE = 0;
@@ -25,6 +27,8 @@ public class GamePanel extends JPanel implements Runnable {
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.black);
+        addMouseMotionListener(mouse);
+        addMouseListener(mouse);
 
         setPieces();
         copyPieces(pieces, simPieces);
@@ -83,7 +87,43 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     // Handles all logic related to the game
-    private void update() {}
+    private void update() {
+
+        // Check if mouse is pressed
+        if (mouse.pressed) {
+            if (activePiece == null) {
+                // If no piece is active, check if a piece is clicked
+                for (Piece piece : simPieces) {
+                    // Check if piece is clicked then set it as active
+                    if (piece.color == currentColor &&
+                            piece.col == mouse.x / Board.SQUARE_SIZE &&
+                            piece.row == mouse.y / Board.SQUARE_SIZE) {
+
+                        activePiece = piece;
+                    }
+                }
+            } else {
+                simulate();
+            }
+        }
+
+        // Check if mouse is released
+        if(mouse.pressed == false) {
+            if (activePiece != null) {
+               activePiece.updatePosition();
+               activePiece = null;
+            }
+        }
+    }
+
+    private void simulate() {
+
+        // If a piece is clicked, move it to the mouse location
+        activePiece.x = mouse.x - Board.HALF_SQUARE_SIZE;
+        activePiece.y = mouse.y - Board.HALF_SQUARE_SIZE;
+        activePiece.col = activePiece.getCol(activePiece.x);
+        activePiece.row = activePiece.getRow(activePiece.y);
+    }
 
     // Handles all graphics related to the game e.g. Pieces and board
     public void paintComponent(Graphics g) {
@@ -97,6 +137,17 @@ public class GamePanel extends JPanel implements Runnable {
         // Draw pieces
         for (Piece piece : simPieces) {
             piece.draw(g2);
+        }
+
+        if (activePiece != null) {
+            g2.setColor(Color.white);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+            g2.fillRect(activePiece.col*Board.SQUARE_SIZE, activePiece.row*Board.SQUARE_SIZE,
+                    Board.SQUARE_SIZE, Board.SQUARE_SIZE);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+
+            // Draw active piece
+            activePiece.draw(g2);
         }
     }
 
