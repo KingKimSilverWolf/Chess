@@ -24,6 +24,10 @@ public class GamePanel extends JPanel implements Runnable {
     public static final int BLACK = 1;
     int currentColor = WHITE; // In chess white always goes first
 
+    // Booleans for piece movement
+    boolean canMove;
+    boolean validSquare;
+
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.black);
@@ -110,19 +114,34 @@ public class GamePanel extends JPanel implements Runnable {
         // Check if mouse is released
         if(mouse.pressed == false) {
             if (activePiece != null) {
-               activePiece.updatePosition();
-               activePiece = null;
+               if (validSquare){
+                   activePiece.updatePosition();
+               } else {
+                   activePiece.resetPosition();
+                   activePiece = null;
+               }
+
             }
         }
     }
 
     private void simulate() {
 
+        canMove = false;
+        validSquare = false;
+
         // If a piece is clicked, move it to the mouse location
         activePiece.x = mouse.x - Board.HALF_SQUARE_SIZE;
         activePiece.y = mouse.y - Board.HALF_SQUARE_SIZE;
         activePiece.col = activePiece.getCol(activePiece.x);
         activePiece.row = activePiece.getRow(activePiece.y);
+
+        // Check if piece is hovering over a valid square
+        if (activePiece.canMove(activePiece.col, activePiece.row)) {
+
+            validSquare = true;
+            canMove = true;
+        }
     }
 
     // Handles all graphics related to the game e.g. Pieces and board
@@ -140,11 +159,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         if (activePiece != null) {
-            g2.setColor(Color.white);
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-            g2.fillRect(activePiece.col*Board.SQUARE_SIZE, activePiece.row*Board.SQUARE_SIZE,
-                    Board.SQUARE_SIZE, Board.SQUARE_SIZE);
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+            if (canMove){
+                g2.setColor(Color.white);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                g2.fillRect(activePiece.col*Board.SQUARE_SIZE, activePiece.row*Board.SQUARE_SIZE,
+                        Board.SQUARE_SIZE, Board.SQUARE_SIZE);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+            }
 
             // Draw active piece
             activePiece.draw(g2);
