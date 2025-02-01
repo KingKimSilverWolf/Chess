@@ -3,6 +3,7 @@ package piece;
 import main.Board;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
@@ -43,5 +44,24 @@ public class Piece {
     }
     public int getY(int row) {
         return row * Board.SQUARE_SIZE;
+    }
+
+    public void draw(Graphics2D g2) {
+        // Calculate the scaling factor to fit the piece within the square
+        double scaleFactor = Math.min(
+                (double) Board.SQUARE_SIZE / image.getWidth(),
+                (double) Board.SQUARE_SIZE / image.getHeight()
+        );
+
+        // Calculate the new width and height after scaling
+        int scaledWidth = (int) (image.getWidth() * scaleFactor);
+        int scaledHeight = (int) (image.getHeight() * scaleFactor);
+
+        // Calculate the position to center the piece within the square
+        int offsetX = (Board.SQUARE_SIZE - scaledWidth) / 2;
+        int offsetY = (Board.SQUARE_SIZE - scaledHeight) / 2;
+
+        // Draw the scaled and centered piece
+        g2.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, null);
     }
 }
