@@ -17,7 +17,8 @@ public class GamePanel extends JPanel implements Runnable {
     // Pieces
     public static ArrayList<Piece> pieces = new ArrayList<>();
     public static ArrayList<Piece> simPieces = new ArrayList<>();
-    Piece activePiece;
+    ArrayList<Piece> promoPieces = new ArrayList<>();
+    Piece activePiece, checkingP;
     public static Piece castlingPiece;
 
     // Piece Colors
@@ -28,6 +29,23 @@ public class GamePanel extends JPanel implements Runnable {
     // Booleans for piece movement
     boolean canMove;
     boolean validSquare;
+    boolean promotion;
+    boolean gameOver;
+
+    public boolean canPromote() {
+        if (activePiece.type == Type.PAWN){
+            if (currentColor == WHITE && activePiece.row == 0 || currentColor == BLACK && activePiece.row == 7) {
+                promoPieces.clear();
+                promoPieces.add(new Rook(currentColor, 9, 2));
+                promoPieces.add(new Knight(currentColor, 9, 3));
+                promoPieces.add(new Bishop(currentColor, 9, 4));
+                promoPieces.add(new Queen(currentColor, 9, 5));
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -64,7 +82,7 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Queen(WHITE, 3, 7));
         pieces.add(new King(WHITE, 4, 7));
 
-        pieces.add(new Queen(WHITE, 4, 4)); // test piece
+        //pieces.add(new Queen(WHITE, 4, 4)); // test piece
 
         // Black Pieces
         pieces.add(new Pawn(BLACK, 0, 1));
@@ -96,47 +114,134 @@ public class GamePanel extends JPanel implements Runnable {
     // Handles all logic related to the game
     private void update() {
 
-        // Check if mouse is pressed
-        if (mouse.pressed) {
-            if (activePiece == null) {
-                // If no piece is active, check if a piece is clicked
-                for (Piece piece : simPieces) {
-                    // Check if piece is clicked then set it as active
-                    if (piece.color == currentColor &&
-                            piece.col == mouse.x / Board.SQUARE_SIZE &&
-                            piece.row == mouse.y / Board.SQUARE_SIZE) {
+        if (promotion) {
+            promoting();
+        } else {
 
-                        activePiece = piece;
+            // Check if mouse is pressed
+            if (mouse.pressed) {
+                if (activePiece == null) {
+                    // If no piece is active, check if a piece is clicked
+                    for (Piece piece : simPieces) {
+                        // Check if piece is clicked then set it as active
+                        if (piece.color == currentColor &&
+                                piece.col == mouse.x / Board.SQUARE_SIZE &&
+                                piece.row == mouse.y / Board.SQUARE_SIZE) {
+
+                            activePiece = piece;
+                        }
                     }
+                } else {
+                    simulate();
                 }
-            } else {
-                simulate();
+            }
+
+            // Check if mouse is released
+            if(!mouse.pressed) {
+                if (activePiece != null) {
+                    if (validSquare){
+
+                        // MOVE CONFIRMED
+
+                        // Update the pieces list in case a piece has been captured and removed
+                        copyPieces(simPieces, pieces);
+                        activePiece.updatePosition();
+
+                        if (castlingPiece != null) {
+                            castlingPiece.updatePosition();
+                        }
+
+                        // Check ifd opponent is in check
+                        if (isKingInCheck()){
+                            // TODO: Possible checkmate
+
+                        }
+//                        else {
+
+                            if (canPromote()){
+                                promotion = true;
+                            } else {
+                                changePlayer();
+                            }
+                        //}
+
+                    } else {
+                        // The move is not valid so reset everything
+                        copyPieces(pieces, simPieces);
+                        activePiece.resetPosition();
+                        activePiece = null;
+                    }
+
+                }
             }
         }
 
-        // Check if mouse is released
-        if(!mouse.pressed) {
-            if (activePiece != null) {
-               if (validSquare){
+    }
 
-                   // MOVE CONFIRMED
+    private boolean opponentCanCaptureKing(){
 
-                   // Update the pieces list in case a piece has been captured and removed
-                   copyPieces(simPieces, pieces);
-                   activePiece.updatePosition();
+        Piece king = getKing(false);
 
-                   if (castlingPiece != null) {
-                       castlingPiece.updatePosition();
-                   }
+        for (Piece piece : simPieces) {
+            if (piece.color != king.color && piece.canMove(king.col, king.row)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-                   changePlayer();
-               } else {
-                   // The move is not valid so reset everything
-                   copyPieces(pieces, simPieces);
-                   activePiece.resetPosition();
-                   activePiece = null;
-               }
+    private boolean isKingInCheck() {
 
+        Piece king = getKing(true);
+
+        if (activePiece.canMove(king.col, king.row)) {
+            checkingP = activePiece;
+            return true;
+        } else {
+            checkingP = null;
+        }
+
+        return false;
+    }
+
+    private Piece getKing(boolean opponent) {
+
+        Piece king = null;
+
+        for (Piece piece : simPieces) {
+            if (opponent) {
+                if (piece.type == Type.KING && piece.color != currentColor) {
+                    king = piece;
+                }
+            }
+            else {
+                if (piece.type == Type.KING && piece.color == currentColor) {
+                    king = piece;
+                }
+            }
+        }
+
+        return king;
+    }
+
+    private void promoting() {
+
+        if (mouse.pressed){
+            for (Piece piece : promoPieces) {
+                if (piece.col == mouse.x/Board.SQUARE_SIZE && piece.row == mouse.y/Board.SQUARE_SIZE) {
+                    switch (piece.type){
+                        case ROOK: simPieces.add(new Rook(currentColor, activePiece.col, activePiece.row)); break;
+                        case KNIGHT: simPieces.add(new Knight(currentColor, activePiece.col, activePiece.row)); break;
+                        case BISHOP: simPieces.add(new Bishop(currentColor, activePiece.col, activePiece.row)); break;
+                        case QUEEN: simPieces.add(new Queen(currentColor, activePiece.col, activePiece.row)); break;
+                        default: break;
+                    }
+                    simPieces.remove(activePiece.getIndex());
+                    copyPieces(simPieces, pieces);
+                    activePiece = null;
+                    promotion = false;
+                    changePlayer();
+                }
             }
         }
     }
@@ -176,8 +281,23 @@ public class GamePanel extends JPanel implements Runnable {
 
             checkCastling();
 
-            validSquare = true;
+            if (!isIllegal(activePiece) && !opponentCanCaptureKing()) {
+                validSquare = true;
+            }
         }
+    }
+
+    private boolean isIllegal(Piece king) {
+
+        if (king.type == Type.KING) {
+            for (Piece piece : simPieces) {
+                if (piece != king && piece.color != king.color && piece.canMove(king.col, king.row)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private void checkCastling() {
@@ -230,12 +350,31 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         if (activePiece != null) {
-            if (canMove){
-                g2.setColor(Color.white);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-                g2.fillRect(activePiece.col*Board.SQUARE_SIZE, activePiece.row*Board.SQUARE_SIZE,
-                        Board.SQUARE_SIZE, Board.SQUARE_SIZE);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+            if (canMove) {
+                if (isIllegal(activePiece) || opponentCanCaptureKing()) {
+                    // Keep the original rectangular highlighting for illegal moves
+                    g2.setColor(Color.gray);
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                    g2.fillRect(
+                            activePiece.col * Board.SQUARE_SIZE,
+                            activePiece.row * Board.SQUARE_SIZE,
+                            Board.SQUARE_SIZE, Board.SQUARE_SIZE
+                    );
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+                } else {
+                    // Use smaller circular highlighting for legal moves
+                    int circleSize = Board.SQUARE_SIZE / 2;
+                    int circleOffset = (Board.SQUARE_SIZE - circleSize) / 2; // Center the circle
+
+                    g2.setColor(Color.white);
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                    g2.fillOval(
+                            activePiece.col * Board.SQUARE_SIZE + circleOffset,
+                            activePiece.row * Board.SQUARE_SIZE + circleOffset,
+                            circleSize, circleSize
+                    );
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+                }
             }
 
             // Draw active piece
@@ -247,10 +386,45 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setFont(new Font("Georgia", Font.PLAIN, 40));
         g2.setColor(Color.white);
 
-        if (currentColor == WHITE) {
-            g2.drawString("White's Turn", 840, 550);
+        if(promotion) {
+            g2.drawString("Promote to:", 840, 150);
+            for(Piece piece : promoPieces) {
+                // Calculate the scaling factor to fit the piece within the square
+                double scaleFactor = Math.min(
+                        (double) Board.SQUARE_SIZE / piece.image.getWidth(),
+                        (double) Board.SQUARE_SIZE / piece.image.getHeight()
+                );
+
+                // Calculate the new width and height after scaling
+                int scaledWidth = (int) (piece.image.getWidth() * scaleFactor);
+                int scaledHeight = (int) (piece.image.getHeight() * scaleFactor);
+
+                // Calculate the position to center the piece within the square
+                int offsetX = (Board.SQUARE_SIZE - scaledWidth) / 2;
+                int offsetY = (Board.SQUARE_SIZE - scaledHeight) / 2;
+
+                // Draw the scaled and centered piece
+                g2.drawImage(piece.image,
+                        piece.getX(piece.col) + offsetX, // X position + offset to center
+                        piece.getY(piece.row) + offsetY, // Y position + offset to center
+                        scaledWidth, scaledHeight, null);
+            }
         } else {
-            g2.drawString("Black's Turn", 840, 250);
+            if (currentColor == WHITE) {
+                g2.drawString("White's Turn", 840, 550);
+                if (checkingP != null && checkingP.color == BLACK) {
+                    g2.setColor(Color.red);
+                    g2.drawString("The King", 840, 650);
+                    g2.drawString("is in check", 840, 700);
+                }
+            } else {
+                g2.drawString("Black's Turn", 840, 250);
+                if (checkingP != null && checkingP.color == WHITE) {
+                    g2.setColor(Color.red);
+                    g2.drawString("The King", 840, 100);
+                    g2.drawString("is in check", 840, 150);
+                }
+            }
         }
     }
 
