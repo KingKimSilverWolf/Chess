@@ -116,7 +116,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (promotion) {
             promoting();
-        } else {
+        } else if (!gameOver) {
 
             // Check if mouse is pressed
             if (mouse.pressed) {
@@ -152,18 +152,17 @@ public class GamePanel extends JPanel implements Runnable {
                         }
 
                         // Check ifd opponent is in check
-                        if (isKingInCheck()){
-                            // TODO: Possible checkmate
-
+                        if (isKingInCheck() && isCheckmate()){
+                            gameOver = true;
                         }
-//                        else {
+                        else { // The game is still going on
 
                             if (canPromote()){
                                 promotion = true;
                             } else {
                                 changePlayer();
                             }
-                        //}
+                        }
 
                     } else {
                         // The move is not valid so reset everything
@@ -300,6 +299,164 @@ public class GamePanel extends JPanel implements Runnable {
         return false;
     }
 
+    // For checking for checkmate
+    private boolean isCheckmate(){
+
+        Piece king = getKing(true);
+
+        if (kingCanMove(king)) {
+            return false;
+        } else {
+
+            // You still can escape
+            //  Check if you can block it with another piece
+
+            // Check the position of the checking piece and the king in check
+            int colDiff = Math.abs(checkingP.col - king.col);
+            int rowDiff = Math.abs(checkingP.row - king.row);
+
+            if (colDiff == 0) {
+                // The checking piece is attacking vertically
+                if (checkingP.row < king.row) {
+                    // The checking piece is above the king
+                    for (int row = checkingP.row; row < king.row; row++) {
+                        for (Piece piece : simPieces) {
+                            if (piece != king && piece.color != currentColor && piece.canMove(checkingP.col, row)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                if (checkingP.row > king.row) {
+                    // The checking piece is below the king
+                    for (int row = checkingP.row; row > king.row; row--) {
+                        for (Piece piece : simPieces) {
+                            if (piece != king && piece.color != currentColor && piece.canMove(checkingP.col, row)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+            } else if (rowDiff == 0) {
+                // The checking piece is attacking horizontally
+                if (checkingP.col < king.col) {
+                    // The checking piece is to the left of the king
+                    for (int col = checkingP.col; col < king.col; col++) {
+                        for (Piece piece : simPieces) {
+                            if (piece != king && piece.color != currentColor && piece.canMove(col, checkingP.row)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                if (checkingP.col > king.col) {
+                    // The checking piece is to the right of the king
+                    for (int col = checkingP.col; col > king.col; col--) {
+                        for (Piece piece : simPieces) {
+                            if (piece != king && piece.color != currentColor && piece.canMove(col, checkingP.row)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+            } else if (colDiff == rowDiff) {
+                // The checking piece is attacking diagonally
+                if (checkingP.row < king.row) {
+                    // The checking piece is above the king
+                    if (checkingP.col < king.col) {
+                        // The checking piece is in the upper left
+                        for (int col = checkingP.col, row = checkingP.row; col < king.col; col++, row++) {
+                            for (Piece piece : simPieces) {
+                                if (piece != king && piece.color != currentColor && piece.canMove(col, row)) {
+                                    return false;
+                                }
+                            }
+
+                        }
+                    }
+                    if (checkingP.col > king.col) {
+                        // The checking piece is in the upper right
+                        for (int col = checkingP.col, row = checkingP.row; col > king.col; col--, row++) {
+                            for (Piece piece : simPieces) {
+                                if (piece != king && piece.color != currentColor && piece.canMove(col, row)) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+
+                }
+                if (checkingP.row > king.row) {
+                    // The checking piece is below the king
+                    if (checkingP.col < king.col) {
+                        // The checking piece is in the lower left
+                        for (int col = checkingP.col, row = checkingP.row; col < king.col; col++, row--) {
+                            for (Piece piece : simPieces) {
+                                if (piece != king && piece.color != currentColor && piece.canMove(col, row)) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                    if (checkingP.col > king.col) {
+                        // The checking piece is in the lower right
+                        for (int col = checkingP.col, row = checkingP.row; col > king.col; col--, row--) {
+                            for (Piece piece : simPieces) {
+                                if (piece != king && piece.color != currentColor && piece.canMove(col, row)) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private boolean kingCanMove(Piece king) {
+
+        // Simulate if there is any square where the king can move to
+        if (isValidMove(king, -1, -1)) return true;
+        if (isValidMove(king, -1, 0)) return true;
+        if (isValidMove(king, -1, 1)) return true;
+        if (isValidMove(king, 0, -1)) return true;
+        if (isValidMove(king, 0, 1)) return true;
+        if (isValidMove(king, 1, -1)) return true;
+        if (isValidMove(king, 1, 0)) return true;
+        if (isValidMove(king, 1, 1)) return true;
+
+        return false;
+    }
+
+    private boolean isValidMove(Piece king, int colPlus, int rowPlus) {
+
+        boolean isValidMove = false;
+
+        // Update the kings position for a second
+        king.col += colPlus;
+        king.row += rowPlus;
+
+        if (king.canMove(king.col, king.row)) {
+
+            if (king.hittingP != null){
+                simPieces.remove(king.hittingP.getIndex());
+            }
+            if (!isIllegal(king)){
+                isValidMove = true;
+            }
+        }
+
+        // Reset the kings position and restore the removed piece
+        king.resetPosition();
+        copyPieces(pieces, simPieces);
+
+        return isValidMove;
+    }
+
     private void checkCastling() {
 
         if (castlingPiece != null) {
@@ -426,6 +583,32 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             }
         }
+
+        if (gameOver) {
+            String winnerText = (currentColor == WHITE) ? "WHITE WINS" : "BLACK WINS";
+
+            // Set font and colors
+            g2.setFont(new Font("Georgia", Font.BOLD, 80));
+            g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black background
+
+            // Define background rectangle dimensions
+            int rectX = 180;
+            int rectY = 340;
+            int rectWidth = 750;
+            int rectHeight = 120;
+
+            // Draw background rectangle
+            g2.fillRoundRect(rectX, rectY, rectWidth, rectHeight, 50, 50);
+
+            // Set text color and draw text
+            g2.setColor(Color.WHITE);
+            g2.drawString(winnerText, 250, 420);
+
+            // Add text shadow effect
+            g2.setColor(Color.GREEN);
+            g2.drawString(winnerText, 255, 425);
+        }
+
     }
 
     @Override
