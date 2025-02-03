@@ -31,6 +31,7 @@ public class GamePanel extends JPanel implements Runnable {
     boolean validSquare;
     boolean promotion;
     boolean gameOver;
+    boolean stalemate;
 
     public boolean canPromote() {
         if (activePiece.type == Type.PAWN){
@@ -116,7 +117,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (promotion) {
             promoting();
-        } else if (!gameOver) {
+        } else if (!gameOver && !stalemate) {
 
             // Check if mouse is pressed
             if (mouse.pressed) {
@@ -154,6 +155,9 @@ public class GamePanel extends JPanel implements Runnable {
                         // Check ifd opponent is in check
                         if (isKingInCheck() && isCheckmate()){
                             gameOver = true;
+                        }
+                        else if (isStalemate() && !isKingInCheck()) {
+                            stalemate = true;
                         }
                         else { // The game is still going on
 
@@ -457,6 +461,26 @@ public class GamePanel extends JPanel implements Runnable {
         return isValidMove;
     }
 
+    private boolean isStalemate(){
+
+        int count = 0;
+        // Count the number of pieces
+        for (Piece piece : simPieces) {
+            if (piece.color != currentColor) {
+                count++;
+            }
+        }
+
+        // If only one piece left(the king)
+        if (count == 1) {
+            if (!kingCanMove(getKing(true))){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void checkCastling() {
 
         if (castlingPiece != null) {
@@ -607,6 +631,28 @@ public class GamePanel extends JPanel implements Runnable {
             // Add text shadow effect
             g2.setColor(Color.GREEN);
             g2.drawString(winnerText, 255, 425);
+        }
+        if (stalemate){
+            // Set font and colors
+            g2.setFont(new Font("Georgia", Font.BOLD, 80));
+            g2.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black background
+
+            // Define background rectangle dimensions
+            int rectX = 180;
+            int rectY = 340;
+            int rectWidth = 750;
+            int rectHeight = 120;
+
+            // Draw background rectangle
+            g2.fillRoundRect(rectX, rectY, rectWidth, rectHeight, 50, 50);
+
+            // Set text color and draw text
+            g2.setColor(Color.WHITE);
+            g2.drawString("STALEMATE !!!", 250, 420);
+
+            // Add text shadow effect
+            g2.setColor(Color.lightGray);
+            g2.drawString("STALEMATE !!!", 255, 425);
         }
 
     }
